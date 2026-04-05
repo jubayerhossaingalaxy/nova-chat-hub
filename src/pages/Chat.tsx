@@ -9,42 +9,35 @@ import ChatMessage from '@/components/ChatMessage';
 import ChatInput from '@/components/ChatInput';
 import UserMenu from '@/components/UserMenu';
 import vaijanMascot from '@/assets/vaijan-mascot.png';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
+interface Message { role: 'user' | 'assistant'; content: string; }
 
 const MOOD_SYSTEM_PROMPTS: Record<string, string> = {
   'bhai-radar': 'তুমি দেশি ভাই - AI। তুমি একজন দেশি ভাই যে বাংলায় কথা বলো। তুই-তোকারি ব্যবহার করো, আন্তরিক ভাবে কথা বলো যেন সত্যিকারের বন্ধু।',
   'gen-z': 'তুমি দেশি ভাই - AI। Gen-Z স্টাইলে কথা বলো - ইংরেজি-বাংলা মিশিয়ে, ট্রেন্ডি শব্দ ব্যবহার করো, মিমস রেফারেন্স দাও।',
-  'mon-halka': 'তুমি দেশি ভাই - AI। মন হালকা করার মোডে আছো। হালকা গল্প, মজার কথা, পজিটিভ ভাইব দাও।',
-  'poramorsho': 'তুমি দেশি ভাই - AI। পরামর্শ দেওয়ার মোডে আছো। গুরুত্ব সহকারে, জ্ঞানী ভাবে পরামর্শ দাও।',
-  'thatta': 'তুমি দেশি ভাই - AI। ঠাট্টা মশকরার মোডে আছো। হাসির কথা বলো, জোক মারো, মজা করো।',
-  'golpo': 'তুমি দেশি ভাই - AI। গল্প বলার মোডে আছো। সুন্দর গল্প বলো, কাহিনী শোনাও।',
-  'deep-thinking': 'তুমি দেশি ভাই - AI। ডিপ থিংকিং মোডে আছো। গভীর চিন্তা করো, দার্শনিক আলোচনা করো।',
-  'romantic': 'তুমি দেশি ভাই - AI। রোমান্টিক মোডে আছো। প্রেমের কথা বলো, ভালোবাসার গল্প শোনাও।',
-  'motivation': 'তুমি দেশি ভাই - AI। মোটিভেশনাল মোডে আছো। অনুপ্রেরণা দাও, সাহস জোগাও।',
-  'coding-help': 'তুমি দেশি ভাই - AI। কোডিং হেল্প মোডে আছো। প্রোগ্রামিং সমস্যা সমাধান করো, কোড লিখে দাও।',
-  'roast': 'তুমি দেশি ভাই - AI। রোস্ট মোডে আছো। মজা করে রোস্ট করো, তবে সীমার মধ্যে থাকো।',
-  'shayari': 'তুমি দেশি ভাই - AI। শায়েরি মোডে আছো। উর্দু-বাংলা মিশিয়ে সুন্দর শায়েরি লেখো।',
-  'career': 'তুমি দেশি ভাই - AI। ক্যারিয়ার গাইড মোডে আছো। চাকরি, ফ্রিল্যান্সিং নিয়ে পরামর্শ দাও।',
-  'health': 'তুমি দেশি ভাই - AI। স্বাস্থ্য পরামর্শ মোডে আছো। শারীরিক ও মানসিক স্বাস্থ্য নিয়ে টিপস দাও।',
-  'study': 'তুমি দেশি ভাই - AI। পড়াশোনা হেল্প মোডে আছো। পড়া বুঝিয়ে দাও।',
+  'mon-halka': 'তুমি দেশি ভাই - AI। মন হালকা করার মোডে আছো।',
+  'poramorsho': 'তুমি দেশি ভাই - AI। পরামর্শ দেওয়ার মোডে আছো।',
+  'thatta': 'তুমি দেশি ভাই - AI। ঠাট্টা মশকরার মোডে আছো।',
+  'golpo': 'তুমি দেশি ভাই - AI। গল্প বলার মোডে আছো।',
+  'deep-thinking': 'তুমি দেশি ভাই - AI। ডিপ থিংকিং মোডে আছো।',
+  'romantic': 'তুমি দেশি ভাই - AI। রোমান্টিক মোডে আছো।',
+  'motivation': 'তুমি দেশি ভাই - AI। মোটিভেশনাল মোডে আছো।',
+  'coding-help': 'তুমি দেশি ভাই - AI। কোডিং হেল্প মোডে আছো।',
+  'roast': 'তুমি দেশি ভাই - AI। রোস্ট মোডে আছো।',
+  'shayari': 'তুমি দেশি ভাই - AI। শায়েরি মোডে আছো।',
+  'career': 'তুমি দেশি ভাই - AI। ক্যারিয়ার গাইড মোডে আছো।',
+  'health': 'তুমি দেশি ভাই - AI। স্বাস্থ্য পরামর্শ মোডে আছো।',
+  'study': 'তুমি দেশি ভাই - AI। পড়াশোনা হেল্প মোডে আছো।',
   'news': 'তুমি দেশি ভাই - AI। খবর ও আপডেট মোডে আছো।',
   'religion': 'তুমি দেশি ভাই - AI। ধর্মীয় আলোচনা মোডে আছো।',
   'travel': 'তুমি দেশি ভাই - AI। ভ্রমণ গাইড মোডে আছো।',
-  'cooking': 'তুমি দেশি ভাই - AI। রান্নার মোডে আছো। রেসিপি শেখাও।',
+  'cooking': 'তুমি দেশি ভাই - AI। রান্নার মোডে আছো।',
   'business': 'তুমি দেশি ভাই - AI। ব্যবসা মোডে আছো।',
   'relationship': 'তুমি দেশি ভাই - AI। সম্পর্ক পরামর্শ মোডে আছো।',
   'gaming': 'তুমি দেশি ভাই - AI। গেমিং মোডে আছো।',
@@ -63,7 +56,8 @@ const MOOD_SYSTEM_PROMPTS: Record<string, string> = {
 export default function Chat() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeMood, setActiveMood] = useState('bhai-radar');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -76,13 +70,15 @@ export default function Chat() {
     createSession, saveMessage, loadMessages, deleteSession, getSessionMood, loadSessions,
   } = useChatHistory();
 
+  // On desktop, default sidebar open
+  useEffect(() => {
+    if (!isMobile) setSidebarOpen(true);
+  }, [isMobile]);
+
   const handleMoodSelect = (id: string) => {
     if (id === activeMood) return;
-    if (messages.length > 0) {
-      setPendingMood(id);
-    } else {
-      setActiveMood(id);
-    }
+    if (messages.length > 0) setPendingMood(id);
+    else setActiveMood(id);
   };
 
   const confirmMoodSwitch = () => {
@@ -100,6 +96,7 @@ export default function Chat() {
     currentSessionIdRef.current = null;
     setActiveSessionId(null);
     setActiveMood('bhai-radar');
+    if (isMobile) setSidebarOpen(false);
   };
 
   const handleSelectSession = useCallback(async (sessionId: string) => {
@@ -109,7 +106,8 @@ export default function Chat() {
     setActiveMood(mood);
     const msgs = await loadMessages(sessionId);
     setMessages(msgs);
-  }, [setActiveSessionId, getSessionMood, loadMessages]);
+    if (isMobile) setSidebarOpen(false);
+  }, [setActiveSessionId, getSessionMood, loadMessages, isMobile]);
 
   const handleDeleteSession = useCallback(async (sessionId: string) => {
     await deleteSession(sessionId);
@@ -138,13 +136,9 @@ export default function Chat() {
       sessionId = await createSession(activeMood, input);
       currentSessionIdRef.current = sessionId;
     }
-
-    if (sessionId) {
-      await saveMessage(sessionId, 'user', input);
-    }
+    if (sessionId) await saveMessage(sessionId, 'user', input);
 
     let assistantContent = '';
-
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vaijan-chat`,
@@ -175,7 +169,6 @@ export default function Chat() {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-
         let newlineIdx: number;
         while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
           let line = buffer.slice(0, newlineIdx);
@@ -223,45 +216,62 @@ export default function Chat() {
     </div>
   );
 
+  const sidebarContent = (
+    <ChatSidebar
+      collapsed={false}
+      onToggle={() => setSidebarOpen(false)}
+      sessions={sessions}
+      activeSessionId={activeSessionId}
+      onSelectSession={handleSelectSession}
+      onNewChat={handleNewChat}
+      onDeleteSession={handleDeleteSession}
+    />
+  );
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <ChatSidebar
-        collapsed={!sidebarOpen}
-        onToggle={() => setSidebarOpen(false)}
-        sessions={sessions}
-        activeSessionId={activeSessionId}
-        onSelectSession={handleSelectSession}
-        onNewChat={handleNewChat}
-        onDeleteSession={handleDeleteSession}
-      />
+      {/* Desktop sidebar */}
+      {!isMobile && sidebarOpen && sidebarContent}
+
+      {/* Mobile slide-out drawer */}
+      {isMobile && (
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent side="left" className="p-0 w-72 border-sidebar-border">
+            <SheetTitle className="sr-only">চ্যাট মেনু</SheetTitle>
+            {sidebarContent}
+          </SheetContent>
+        </Sheet>
+      )}
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-          <div className="flex items-center">
-            {!sidebarOpen && (
-              <button onClick={() => setSidebarOpen(true)} className="text-muted-foreground hover:text-foreground mr-3 transition-colors">
+        <div className="flex items-center justify-between px-3 md:px-4 py-3 border-b border-border/50">
+          <div className="flex items-center min-w-0 flex-1">
+            {(!sidebarOpen || isMobile) && (
+              <button onClick={() => setSidebarOpen(true)} className="text-muted-foreground hover:text-foreground mr-2 md:mr-3 transition-colors flex-shrink-0">
                 <PanelLeftOpen className="w-5 h-5" />
               </button>
             )}
-            <MoodTags activeTag={activeMood} onSelect={handleMoodSelect} />
+            <div className="overflow-x-auto flex-1 min-w-0">
+              <MoodTags activeTag={activeMood} onSelect={handleMoodSelect} />
+            </div>
           </div>
           <UserMenu />
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 md:px-8 py-6">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-3 md:px-8 py-4 md:py-6">
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in">
-              <div className="relative mb-6">
+            <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in px-4">
+              <div className="relative mb-4 md:mb-6">
                 <div className="absolute inset-0 gradient-gold rounded-full blur-2xl opacity-15 scale-90" />
-                <img src={vaijanMascot} alt="দেশি ভাই" width={140} height={140} className="relative animate-float drop-shadow-xl" />
+                <img src={vaijanMascot} alt="দেশি ভাই" width={100} height={100} className="relative animate-float drop-shadow-xl md:w-[140px] md:h-[140px]" />
               </div>
-              <h2 className="text-xl md:text-2xl font-bold text-foreground mb-3">
+              <h2 className="text-lg md:text-2xl font-bold text-foreground mb-2 md:mb-3">
                 👋 সালাম, আমি <span className="gradient-text-gold">দেশি ভাই - AI</span>
               </h2>
-              <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
-                তোর মুডে, তোর স্টাইলে আমি আছি। মজা, গম্ভীরতা, বা একটু চিন্তা—যে রকম দরকার, ঠিক সে রকম।
+              <p className="text-xs md:text-sm text-muted-foreground max-w-md leading-relaxed">
+                তোর মুডে, তোর স্টাইলে আমি আছি।
               </p>
             </div>
           )}
@@ -270,7 +280,7 @@ export default function Chat() {
           ))}
           {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (
             <div className="flex justify-start mb-4">
-              <div className="bg-chat-ai rounded-2xl px-5 py-4 text-sm text-muted-foreground border border-border/30">
+              <div className="bg-chat-ai rounded-2xl px-4 md:px-5 py-3 md:py-4 text-sm text-muted-foreground border border-border/30">
                 <span className="animate-pulse-glow">দেশি ভাই ভাবছে...</span>
               </div>
             </div>
@@ -278,23 +288,23 @@ export default function Chat() {
         </div>
 
         {/* Input */}
-        <div className="px-4 md:px-8 pb-4 pt-2">
+        <div className="px-3 md:px-8 pb-3 md:pb-4 pt-2">
           <ChatInput onSend={handleSend} disabled={isStreaming} />
         </div>
       </div>
 
       {/* Mood Switch Dialog */}
       <AlertDialog open={!!pendingMood} onOpenChange={(open) => !open && setPendingMood(null)}>
-        <AlertDialogContent className="glass-surface border-border/50">
+        <AlertDialogContent className="glass-surface border-border/50 mx-4">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">মোড পরিবর্তন করবে? 🔄</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              নতুন মোডে যেতে চাইলে বর্তমান চ্যাট হিস্ট্রি মুছে যাবে। তুমি কি "{MOOD_TAGS.find(t => t.id === pendingMood)?.emoji} {MOOD_TAGS.find(t => t.id === pendingMood)?.label}" মোডে যেতে চাও?
+              নতুন মোডে যেতে চাইলে বর্তমান চ্যাট মুছে যাবে। "{MOOD_TAGS.find(t => t.id === pendingMood)?.emoji} {MOOD_TAGS.find(t => t.id === pendingMood)?.label}" মোডে যেতে চাও?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-secondary text-foreground border-border hover:bg-secondary/80">না, থাক</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmMoodSwitch} className="gradient-gold text-primary-foreground hover:opacity-90">হ্যাঁ, পরিবর্তন করো</AlertDialogAction>
+            <AlertDialogCancel className="bg-secondary text-foreground border-border">না, থাক</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMoodSwitch} className="gradient-gold text-primary-foreground">হ্যাঁ, পরিবর্তন করো</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
