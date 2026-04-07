@@ -16,7 +16,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
 
   useEffect(() => {
     if (!supportsVoice) return;
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = 'bn-BD';
     recognition.continuous = false;
