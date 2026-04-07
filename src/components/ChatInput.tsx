@@ -9,7 +9,7 @@ interface ChatInputProps {
 export default function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const supportsVoice = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
