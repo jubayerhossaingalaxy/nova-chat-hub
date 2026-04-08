@@ -7,6 +7,7 @@ import ChatSidebar from '@/components/ChatSidebar';
 import MoodTags, { MOOD_TAGS } from '@/components/MoodTags';
 import ChatMessage from '@/components/ChatMessage';
 import ChatInput from '@/components/ChatInput';
+import ChatExport from '@/components/ChatExport';
 import UserMenu from '@/components/UserMenu';
 import SuggestedReplies from '@/components/SuggestedReplies';
 import vaijanMascot from '@/assets/vaijan-mascot.png';
@@ -31,6 +32,7 @@ export default function Chat() {
   const [pendingMood, setPendingMood] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [bookmarkedIndices, setBookmarkedIndices] = useState<Set<number>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentSessionIdRef = useRef<string | null>(null);
 
@@ -53,6 +55,7 @@ export default function Chat() {
     if (pendingMood) {
       setActiveMood(pendingMood);
       setMessages([]);
+      setBookmarkedIndices(new Set());
       currentSessionIdRef.current = null;
       setActiveSessionId(null);
       setPendingMood(null);
@@ -61,6 +64,7 @@ export default function Chat() {
 
   const handleNewChat = () => {
     setMessages([]);
+    setBookmarkedIndices(new Set());
     currentSessionIdRef.current = null;
     setActiveSessionId(null);
     setActiveMood('bhai-radar');
@@ -74,6 +78,7 @@ export default function Chat() {
     setActiveMood(mood);
     const msgs = await loadMessages(sessionId);
     setMessages(msgs);
+    setBookmarkedIndices(new Set());
     if (isMobile) setSidebarOpen(false);
   }, [setActiveSessionId, getSessionMood, loadMessages, isMobile]);
 
@@ -81,6 +86,7 @@ export default function Chat() {
     await deleteSession(sessionId);
     if (currentSessionIdRef.current === sessionId) {
       setMessages([]);
+      setBookmarkedIndices(new Set());
       currentSessionIdRef.current = null;
     }
   }, [deleteSession]);
@@ -101,6 +107,25 @@ export default function Chat() {
     setMessages(trimmed);
     setTimeout(() => handleSend(userContent), 100);
   }, [messages]);
+
+  const handleEdit = useCallback((index: number, newContent: string) => {
+    const trimmed = messages.slice(0, index);
+    setMessages(trimmed);
+    setTimeout(() => handleSend(newContent), 100);
+  }, [messages]);
+
+  const handleBookmark = useCallback((index: number) => {
+    setBookmarkedIndices(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }, []);
+
+  const handleFeedback = useCallback((index: number, type: 'up' | 'down') => {
+    console.log(`Feedback: message ${index}, type: ${type}`);
+  }, []);
 
   const handleSend = async (input: string) => {
     const userMsg: Message = { role: 'user', content: input };
@@ -135,9 +160,7 @@ export default function Chat() {
 
       if (!response.ok || !response.body) {
         const errData = await response.json().catch(() => ({}));
-        if (response.status === 429) {
-          throw new Error('rate_limit');
-        }
+        if (response.status === 429) throw new Error('rate_limit');
         throw new Error(errData.error || 'AI response failed');
       }
 
@@ -230,10 +253,10 @@ export default function Chat() {
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 md:px-4 py-3 border-b border-border/50">
+        <div className="flex items-center justify-between px-3 md:px-4 py-2 border-b border-border/50">
           <div className="flex items-center min-w-0 flex-1">
             {(!sidebarOpen || isMobile) && (
-              <button onClick={() => setSidebarOpen(true)} className="text-muted-foreground hover:text-foreground mr-2 md:mr-3 transition-colors flex-shrink-0" aria-label="সাইডবার খোলো">
+              <button onClick={() => setSidebarOpen(true)} className="text-muted-foreground hover:text-foreground mr-2 transition-colors flex-shrink-0" aria-label="সাইডবার খোলো">
                 <PanelLeftOpen className="w-5 h-5" />
               </button>
             )}
@@ -241,15 +264,18 @@ export default function Chat() {
               <MoodTags activeTag={activeMood} onSelect={handleMoodSelect} />
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
             {messages.length > 0 && (
-              <button
-                onClick={() => setSearchOpen(!searchOpen)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                aria-label="চ্যাটে সার্চ করো"
-              >
-                <Search className="w-4 h-4" />
-              </button>
+              <>
+                <button
+                  onClick={() => setSearchOpen(!searchOpen)}
+                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                  aria-label="চ্যাটে সার্চ করো"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+                <ChatExport messages={messages} mood={activeMood} />
+              </>
             )}
             <UserMenu />
           </div>
@@ -275,7 +301,7 @@ export default function Chat() {
         )}
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-3 md:px-8 py-4 md:py-6">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-3 md:px-8 py-4 md:py-6" role="log" aria-live="polite" aria-label="চ্যাট মেসেজ">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in px-4">
               <div className="relative mb-4 md:mb-6">
@@ -285,8 +311,11 @@ export default function Chat() {
               <h1 className="text-lg md:text-2xl font-bold text-foreground mb-2 md:mb-3">
                 👋 সালাম, আমি <span className="gradient-text-gold">দেশি ভাই - AI</span>
               </h1>
-              <p className="text-xs md:text-sm text-muted-foreground max-w-md leading-relaxed mb-4">
+              <p className="text-xs md:text-sm text-muted-foreground max-w-md leading-relaxed mb-1">
                 তোর মুডে, তোর স্টাইলে আমি আছি।
+              </p>
+              <p className="text-[10px] text-muted-foreground/60 mb-4">
+                {MOOD_TAGS.length}+ মোড • Voice Input • Code Highlighting • Export
               </p>
               <SuggestedReplies mood={activeMood} onSelect={handleSend} />
             </div>
@@ -297,6 +326,10 @@ export default function Chat() {
               role={msg.role}
               content={msg.content}
               onRetry={msg.role === 'assistant' && i === messages.length - 1 && !isStreaming ? () => handleRetry(i) : undefined}
+              onFeedback={msg.role === 'assistant' ? (type) => handleFeedback(i, type) : undefined}
+              onBookmark={() => handleBookmark(i)}
+              isBookmarked={bookmarkedIndices.has(i)}
+              onEdit={msg.role === 'user' && !isStreaming ? (newContent) => handleEdit(i, newContent) : undefined}
             />
           ))}
           {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (

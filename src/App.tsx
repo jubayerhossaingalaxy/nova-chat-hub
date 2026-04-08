@@ -9,6 +9,8 @@ import Login from "./pages/Login";
 import Chat from "./pages/Chat";
 import SettingsPage from "./pages/SettingsPage";
 import Team from "./pages/Team";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +28,8 @@ const App = () => (
             <Route path="/chat" element={<Chat />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/team" element={<Team />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
