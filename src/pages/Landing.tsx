@@ -148,9 +148,14 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-border/50 py-6 text-center">
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground mb-2">
           © 2026 দেশি ভাই - AI — তোমার বাংলা AI ভাই 💛
         </p>
+        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+          <Link to="/privacy" className="hover:text-foreground transition-colors">গোপনীয়তা নীতি</Link>
+          <span>•</span>
+          <Link to="/terms" className="hover:text-foreground transition-colors">শর্তাবলী</Link>
+        </div>
       </footer>
     </div>
   );
