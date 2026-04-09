@@ -10,6 +10,9 @@ import ChatInput from '@/components/ChatInput';
 import ChatExport from '@/components/ChatExport';
 import UserMenu from '@/components/UserMenu';
 import SuggestedReplies from '@/components/SuggestedReplies';
+import OfflineBanner from '@/components/OfflineBanner';
+import WelcomeOnboarding from '@/components/WelcomeOnboarding';
+import { useKeyboardShortcuts } from '@/components/KeyboardShortcuts';
 import vaijanMascot from '@/assets/vaijan-mascot.png';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
@@ -33,6 +36,7 @@ export default function Chat() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [bookmarkedIndices, setBookmarkedIndices] = useState<Set<number>>(new Set());
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentSessionIdRef = useRef<string | null>(null);
 
@@ -41,9 +45,24 @@ export default function Chat() {
     createSession, saveMessage, loadMessages, deleteSession, getSessionMood, loadSessions,
   } = useChatHistory();
 
+  // Check if first-time user
+  useEffect(() => {
+    if (user && sessions.length === 0) {
+      const seen = localStorage.getItem('deshi-bhai-onboarded');
+      if (!seen) setShowOnboarding(true);
+    }
+  }, [user, sessions]);
+
   useEffect(() => {
     if (!isMobile) setSidebarOpen(true);
   }, [isMobile]);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onNewChat: handleNewChat,
+    onToggleSidebar: () => setSidebarOpen(prev => !prev),
+    onToggleSearch: () => setSearchOpen(prev => !prev),
+  });
 
   const handleMoodSelect = (id: string) => {
     if (id === activeMood) return;
@@ -62,14 +81,14 @@ export default function Chat() {
     }
   };
 
-  const handleNewChat = () => {
+  function handleNewChat() {
     setMessages([]);
     setBookmarkedIndices(new Set());
     currentSessionIdRef.current = null;
     setActiveSessionId(null);
     setActiveMood('bhai-radar');
     if (isMobile) setSidebarOpen(false);
-  };
+  }
 
   const handleSelectSession = useCallback(async (sessionId: string) => {
     setActiveSessionId(sessionId);
@@ -160,7 +179,10 @@ export default function Chat() {
 
       if (!response.ok || !response.body) {
         const errData = await response.json().catch(() => ({}));
-        if (response.status === 429) throw new Error('rate_limit');
+        if (response.status === 429) {
+          const remaining = errData.remaining;
+          throw new Error(remaining === 0 ? 'daily_limit' : 'rate_limit');
+        }
         throw new Error(errData.error || 'AI response failed');
       }
 
@@ -207,9 +229,20 @@ export default function Chat() {
       }
     } catch (err: unknown) {
       console.error('Chat error:', err);
-      const errorMsg = err instanceof Error && err.message === 'rate_limit'
-        ? 'ভাই, অনেক বেশি মেসেজ পাঠাচ্ছিস! একটু পরে আবার চেষ্টা করো। ⏳'
-        : 'ভাই, একটু সমস্যা হয়েছে। আবার চেষ্টা করো! 😅';
+      let errorMsg: string;
+      if (err instanceof Error) {
+        if (err.message === 'daily_limit') {
+          errorMsg = 'ভাই, আজকের ১৫০টা মেসেজ লিমিট শেষ! কাল আবার এসো। 🕐';
+        } else if (err.message === 'rate_limit') {
+          errorMsg = 'ভাই, অনেক বেশি মেসেজ পাঠাচ্ছিস! একটু পরে আবার চেষ্টা করো। ⏳';
+        } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+          errorMsg = 'ভাই, ইন্টারনেট কানেকশন চেক করো! অফলাইনে আমি কাজ করতে পারি না। 📡';
+        } else {
+          errorMsg = 'ভাই, একটু সমস্যা হয়েছে। আবার চেষ্টা করো! 😅';
+        }
+      } else {
+        errorMsg = 'ভাই, একটু সমস্যা হয়েছে। আবার চেষ্টা করো! 😅';
+      }
       setMessages((prev) => [...prev, { role: 'assistant', content: errorMsg }]);
     } finally {
       setIsStreaming(false);
@@ -252,6 +285,9 @@ export default function Chat() {
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Offline banner */}
+        <OfflineBanner />
+
         {/* Header */}
         <div className="flex items-center justify-between px-3 md:px-4 py-2 border-b border-border/50">
           <div className="flex items-center min-w-0 flex-1">
@@ -270,7 +306,8 @@ export default function Chat() {
                 <button
                   onClick={() => setSearchOpen(!searchOpen)}
                   className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                  aria-label="চ্যাটে সার্চ করো"
+                  aria-label="চ্যাটে সার্চ করো (Ctrl+K)"
+                  title="Ctrl+K"
                 >
                   <Search className="w-4 h-4" />
                 </button>
@@ -289,7 +326,7 @@ export default function Chat() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="চ্যাটে খোঁজো..."
+              placeholder="চ্যাটে খোঁজো... (Ctrl+K)"
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
               autoFocus
               aria-label="চ্যাটে সার্চ করো"
@@ -304,6 +341,17 @@ export default function Chat() {
         <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-3 md:px-8 py-4 md:py-6" role="log" aria-live="polite" aria-label="চ্যাট মেসেজ">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in px-4">
+              {/* Welcome Onboarding */}
+              {showOnboarding && (
+                <WelcomeOnboarding
+                  userName={user?.user_metadata?.full_name?.split(' ')[0]}
+                  onDismiss={() => {
+                    setShowOnboarding(false);
+                    localStorage.setItem('deshi-bhai-onboarded', '1');
+                  }}
+                />
+              )}
+
               <div className="relative mb-4 md:mb-6">
                 <div className="absolute inset-0 gradient-gold rounded-full blur-2xl opacity-15 scale-90" />
                 <img src={vaijanMascot} alt="দেশি ভাই মাসকট" width={100} height={100} loading="lazy" className="relative animate-float drop-shadow-xl md:w-[140px] md:h-[140px]" />
@@ -318,6 +366,13 @@ export default function Chat() {
                 {MOOD_TAGS.length}+ মোড • Voice Input • Code Highlighting • Export
               </p>
               <SuggestedReplies mood={activeMood} onSelect={handleSend} />
+              
+              {/* Keyboard shortcuts hint */}
+              <div className="mt-6 flex flex-wrap gap-3 justify-center text-[10px] text-muted-foreground/40">
+                <span>⌘+B সাইডবার</span>
+                <span>⌘+K সার্চ</span>
+                <span>⌘+⇧+N নতুন চ্যাট</span>
+              </div>
             </div>
           )}
           {filteredMessages.map((msg, i) => (

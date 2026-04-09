@@ -8,11 +8,14 @@ const corsHeaders = {
 
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_MESSAGES = 20;
+const DAILY_MESSAGE_LIMIT = 150;
 
 function sanitizeInput(text: string): string {
   return text
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/<[^>]*>/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
     .slice(0, MAX_MESSAGE_LENGTH);
 }
 
@@ -22,36 +25,58 @@ serve(async (req) => {
   try {
     const { messages, systemPrompt } = await req.json();
 
-    // Input validation
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Messages required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Sanitize and limit messages
     const sanitizedMessages = messages.slice(-MAX_MESSAGES).map((m: { role: string; content: string }) => ({
       role: m.role === 'user' ? 'user' : 'assistant',
       content: sanitizeInput(m.content || ''),
     }));
 
-    // JWT verification - extract user from auth header
+    // JWT verification & rate limiting
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const authHeader = req.headers.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    let userId: string | null = null;
+
+    if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
-      // Only verify if it's not the anon key (for authenticated requests)
-      const supabaseUrl = Deno.env.get("SUPABASE_URL");
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      if (supabaseUrl && supabaseServiceKey && token !== Deno.env.get("SUPABASE_ANON_KEY")) {
+      if (token !== Deno.env.get("SUPABASE_ANON_KEY")) {
         try {
-          const supabase = createClient(supabaseUrl, supabaseServiceKey);
           const { data: { user }, error } = await supabase.auth.getUser(token);
-          if (error || !user) {
-            console.warn("Auth warning: Invalid token, proceeding with anon access");
+          if (!error && user) {
+            userId = user.id;
           }
         } catch {
-          // Non-fatal: proceed without auth
+          // Non-fatal
         }
+      }
+    }
+
+    // Per-user rate limiting
+    if (userId) {
+      try {
+        const { data: rateResult } = await supabase.rpc('check_and_increment_rate_limit', {
+          p_user_id: userId,
+          p_daily_limit: DAILY_MESSAGE_LIMIT,
+        });
+
+        if (rateResult && !rateResult.allowed) {
+          return new Response(JSON.stringify({ 
+            error: `ভাই, আজকের ${DAILY_MESSAGE_LIMIT}টা মেসেজ লিমিট শেষ! কাল আবার আসো। 🕐`,
+            remaining: 0,
+            limit: DAILY_MESSAGE_LIMIT,
+          }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (e) {
+        console.warn("Rate limit check failed:", e);
       }
     }
 
@@ -65,7 +90,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: sanitizeInput(systemPrompt || "তুমি দেশি ভাই - AI। বাংলায় কথা বলো।") },
           ...sanitizedMessages,
