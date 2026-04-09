@@ -131,10 +131,10 @@ export default function SettingsPage() {
                 <h2 className="text-base font-bold text-foreground">গোপনীয়তা ও নিরাপত্তা</h2>
               </div>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" /> তোমার চ্যাট এনক্রিপ্টেড এবং শুধু তুমি দেখতে পারো</li>
-                <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" /> ৭ দিন পরে পুরনো চ্যাট অটোমেটিক ডিলিট হয়</li>
-                <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" /> Google OAuth দিয়ে নিরাপদ লগইন</li>
-                <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" /> আমরা তোমার ডেটা তৃতীয় পক্ষের সাথে শেয়ার করি না</li>
+                <li className="flex items-start gap-2"><Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" /> তোমার চ্যাট এনক্রিপ্টেড এবং শুধু তুমি দেখতে পারো</li>
+                <li className="flex items-start gap-2"><Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" /> ৭ দিন পরে পুরনো চ্যাট অটোমেটিক ডিলিট হয়</li>
+                <li className="flex items-start gap-2"><Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" /> Google OAuth দিয়ে নিরাপদ লগইন</li>
+                <li className="flex items-start gap-2"><Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" /> আমরা তোমার ডেটা তৃতীয় পক্ষের সাথে শেয়ার করি না</li>
               </ul>
             </div>
 
