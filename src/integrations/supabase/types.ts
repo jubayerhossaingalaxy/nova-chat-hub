@@ -73,11 +73,69 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          preferred_language: string | null
+          theme: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          preferred_language?: string | null
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          preferred_language?: string | null
+          theme?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_message_counts: {
+        Row: {
+          created_at: string
+          id: string
+          message_count: number
+          message_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_count?: number
+          message_date?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_count?: number
+          message_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      check_and_increment_rate_limit: {
+        Args: { p_daily_limit?: number; p_user_id: string }
+        Returns: Json
+      }
       delete_old_chat_sessions: { Args: never; Returns: undefined }
     }
     Enums: {
