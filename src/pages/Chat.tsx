@@ -142,9 +142,21 @@ export default function Chat() {
     });
   }, []);
 
-  const handleFeedback = useCallback((index: number, type: 'up' | 'down') => {
-    console.log(`Feedback: message ${index}, type: ${type}`);
-  }, []);
+  const handleFeedback = useCallback(async (index: number, type: 'up' | 'down') => {
+    if (!user) return;
+    const msg = messages[index];
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      await supabase.from('message_feedback').insert({
+        user_id: user.id,
+        session_id: currentSessionIdRef.current,
+        message_content: msg?.content?.slice(0, 500),
+        feedback_type: type,
+      });
+    } catch (e) {
+      console.error('Feedback save error:', e);
+    }
+  }, [messages, user]);
 
   const handleSend = async (input: string) => {
     const userMsg: Message = { role: 'user', content: input };
