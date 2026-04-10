@@ -73,6 +73,74 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_stats: {
+        Row: {
+          active_users: number | null
+          created_at: string
+          id: string
+          stat_date: string
+          top_moods: Json | null
+          total_messages: number | null
+          total_sessions: number | null
+          total_users: number | null
+        }
+        Insert: {
+          active_users?: number | null
+          created_at?: string
+          id?: string
+          stat_date?: string
+          top_moods?: Json | null
+          total_messages?: number | null
+          total_sessions?: number | null
+          total_users?: number | null
+        }
+        Update: {
+          active_users?: number | null
+          created_at?: string
+          id?: string
+          stat_date?: string
+          top_moods?: Json | null
+          total_messages?: number | null
+          total_sessions?: number | null
+          total_users?: number | null
+        }
+        Relationships: []
+      }
+      message_feedback: {
+        Row: {
+          created_at: string
+          feedback_type: string
+          id: string
+          message_content: string | null
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_type: string
+          id?: string
+          message_content?: string | null
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          message_content?: string | null
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_feedback_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -127,6 +195,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -137,9 +226,42 @@ export type Database = {
         Returns: Json
       }
       delete_old_chat_sessions: { Args: never; Returns: undefined }
+      get_admin_dashboard_stats: { Args: never; Returns: Json }
+      get_admin_users_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      get_daily_active_users: {
+        Args: { days_back?: number }
+        Returns: {
+          day: string
+          user_count: number
+        }[]
+      }
+      get_daily_message_counts: {
+        Args: { days_back?: number }
+        Returns: {
+          day: string
+          msg_count: number
+        }[]
+      }
+      get_mood_distribution: {
+        Args: never
+        Returns: {
+          count: number
+          mood: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -266,6 +388,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const

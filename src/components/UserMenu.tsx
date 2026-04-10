@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageSquare, Settings, LogOut } from 'lucide-react';
+import { MessageSquare, Settings, LogOut, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdmin } from '@/hooks/useAdmin';
 
 export default function UserMenu() {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -40,6 +42,11 @@ export default function UserMenu() {
           <Link to="/settings" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary/60 transition-colors">
             <Settings className="w-4 h-4 text-muted-foreground" /> Settings
           </Link>
+          {isAdmin && (
+            <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-secondary/60 transition-colors">
+              <Shield className="w-4 h-4" /> Admin Panel
+            </Link>
+          )}
           <button onClick={() => { signOut(); setOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-destructive hover:bg-secondary/60 transition-colors text-left">
             <LogOut className="w-4 h-4" /> Log out
           </button>
