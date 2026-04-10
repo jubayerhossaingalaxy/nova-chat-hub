@@ -218,17 +218,7 @@ export type Database = {
       }
     }
     Views: {
-      admin_dashboard_stats: {
-        Row: {
-          active_users_24h: number | null
-          messages_24h: number | null
-          sessions_24h: number | null
-          total_messages: number | null
-          total_sessions: number | null
-          total_users: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       check_and_increment_rate_limit: {
@@ -236,6 +226,11 @@ export type Database = {
         Returns: Json
       }
       delete_old_chat_sessions: { Args: never; Returns: undefined }
+      get_admin_dashboard_stats: { Args: never; Returns: Json }
+      get_admin_users_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
       get_daily_active_users: {
         Args: { days_back?: number }
         Returns: {
